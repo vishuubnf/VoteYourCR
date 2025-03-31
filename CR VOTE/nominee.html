@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nominee Registration</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #e8f5e9;
+            /* Light green background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-10px);
+        }
+
+        h2 {
+            font-size: 26px;
+            margin-bottom: 20px;
+            color: #2c6b47;
+            /* Dark green */
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 18px;
+            border-radius: 8px;
+            border: 1px solid #c8e6c9;
+            /* Light green border */
+            font-size: 16px;
+            color: #555;
+            transition: border 0.3s ease;
+        }
+
+        input:focus {
+            border-color: #28a745;
+            /* Green border on focus */
+            outline: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px 16px;
+            background-color: #28a745;
+            /* Green button */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #218838;
+            /* Darker green on hover */
+        }
+
+        .error,
+        .success {
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .error {
+            color: #e74c3c;
+            /* Red for error */
+        }
+
+        .success {
+            color: #28a745;
+            /* Green for success */
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+                width: 90%;
+                max-width: 100%;
+            }
+
+            h2 {
+                font-size: 22px;
+            }
+
+            input,
+            button {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>Nominee Registration</h2>
+        <input type="email" id="nomineeEmail" placeholder="Email" />
+        <input type="password" id="nomineePassword" placeholder="Password" />
+        <input type="text" id="nomineeName" placeholder="Your Name" />
+        <input type="text" id="nomineeSlogan" placeholder="Your Slogan" />
+        <button onclick="registerNominee()">Register</button>
+        <p class="error" id="nomineeError"></p>
+        <p class="success" id="nomineeSuccess"></p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDi0XJ2lEWE4t_ttn1d6c1AmPk_jsIIcTE",
+            authDomain: "voteyourcr.firebaseapp.com",
+            projectId: "voteyourcr",
+            storageBucket: "voteyourcr.firebasestorage.app",
+            messagingSenderId: "486184198747",
+            appId: "1:486184198747:web:b45d0d258cee5d24d6557e",
+            measurementId: "G-ZL6HXYVQJP"
+        };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.registerNominee = async function () {
+            const email = document.getElementById('nomineeEmail').value;
+            const password = document.getElementById('nomineePassword').value;
+            const name = document.getElementById('nomineeName').value;
+            const slogan = document.getElementById('nomineeSlogan').value;
+            const errorElement = document.getElementById('nomineeError');
+            const successElement = document.getElementById('nomineeSuccess');
+            errorElement.textContent = '';
+            successElement.textContent = '';
+
+            // ✅ Check if all fields are filled
+            if (!email || !password || !name || !slogan) {
+                errorElement.textContent = "All fields are required.";
+                return;
+            }
+
+            // ✅ Password validation
+            if (password.length < 6) {
+                errorElement.textContent = "Password must be at least 6 characters long.";
+                return;
+            }
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // ✅ Save nominee details in Firestore (without image)
+                await setDoc(doc(db, "nominees", user.uid), { name, slogan, votes: 0 });
+
+                successElement.textContent = "Nominee registered successfully! Redirecting...";
+                setTimeout(() => window.location.href = "index.html", 2000);
+            } catch (error) {
+                errorElement.textContent = error.message;
+            }
+        };
+    </script>
+</body>
+
+</html>

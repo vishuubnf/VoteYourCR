@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        /* General Styling */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #eafaf1;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: flex-start;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 250px;
+            background-color: #2d6a4f;
+            color: #ecf0f1;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 100;
+        }
+
+        .sidebar h2 {
+            color: white;
+            text-align: center;
+            font-size: 26px;
+            margin-bottom: 40px;
+        }
+
+        .sidebar nav a {
+            color: white;
+            font-size: 18px;
+            margin: 15px 0;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+
+        .sidebar nav a:hover {
+            color: #a8dadc;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            padding: 30px;
+            width: calc(100% - 250px);
+            box-sizing: border-box;
+        }
+
+        .card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        th,
+        td {
+            padding: 15px;
+            text-align: left;
+            font-size: 16px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #2d6a4f;
+            color: white;
+        }
+
+        tr:hover {
+            background-color: #d1e7d1;
+        }
+
+        .delete-btn {
+            background-color: #e74c3c;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+
+        /* Voting Control */
+        .voting-control {
+            margin: 20px 0;
+        }
+
+        .control-btn {
+            background-color: #2d6a4f;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: 0.3s;
+        }
+
+        .control-btn:hover {
+            background-color: #4c9a2a;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+                padding: 15px;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h2>Dashboard</h2>
+        <nav>
+            <a href="#">Dashboard</a>
+            <a href="#">Nominees</a>
+            <a href="#">Statistics</a>
+            <a href="#">Settings</a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="card">
+            <h2>Admin Dashboard</h2>
+
+            <!-- Voting Control -->
+            <div class="voting-control">
+                <button class="control-btn" onclick="startVoting()">Start Voting</button>
+                <button class="control-btn" onclick="stopVoting()">Stop Voting</button>
+                <p id="votingStatus"><strong>Status:</strong> Loading...</p>
+
+            </div>
+
+            <!-- Nominees Table -->
+            <h3>Nominees List</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Slogan</th>
+                        <th>Image</th>
+                        <th>Votes</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="nomineeTable">
+                    <!-- Dynamic Data -->
+                </tbody>
+            </table>
+
+            <!-- Voter Status -->
+            <h3>Voter Status</h3>
+            <div id="votersList"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, deleteDoc, doc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDi0XJ2lEWE4t_ttn1d6c1AmPk_jsIIcTE",
+            authDomain: "voteyourcr.firebaseapp.com",
+            projectId: "voteyourcr",
+            storageBucket: "voteyourcr.firebasestorage.app",
+            messagingSenderId: "486184198747",
+            appId: "1:486184198747:web:b45d0d258cee5d24d6557e",
+            measurementId: "G-ZL6HXYVQJP"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const nomineeTable = document.getElementById("nomineeTable");
+        const votersList = document.getElementById("votersList");
+
+        // Load nominees
+        function loadNominees() {
+            onSnapshot(collection(db, "nominees"), (snapshot) => {
+                nomineeTable.innerHTML = "";
+                snapshot.forEach((doc) => {
+                    const nominee = doc.data();
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${nominee.name}</td>
+                        <td>${nominee.slogan}</td>
+                        <td><img src="${nominee.imageUrl}" width="50" height="50" style="border-radius: 8px;"></td>
+                        <td>${nominee.votes || 0}</td>
+                        <td><button class="delete-btn" onclick="deleteNominee('${doc.id}')">Delete</button></td>
+                    `;
+                    nomineeTable.appendChild(row);
+                });
+            });
+        }
+
+        // Load voter status
+        async function loadVoterStatus() {
+            votersList.innerHTML = "";
+            const querySnapshot = await getDocs(collection(db, "allowedVoters"));
+            querySnapshot.forEach((doc) => {
+                const voter = doc.id;
+                const status = doc.data().hasVoted ? "✅ Voted" : "❌ Not Voted";
+                votersList.innerHTML += `<p>${voter}: ${status}</p>`;
+            });
+        }
+
+        // Start Voting
+        window.startVoting = async function () {
+            const votingRef = doc(db, "settings", "status");
+            await updateDoc(votingRef, {
+                started: true,
+                stopped: false
+            });
+            alert("Voting has started!");
+        };
+
+        // Stop Voting
+        window.stopVoting = async function () {
+            const votingRef = doc(db, "settings", "status");
+            await updateDoc(votingRef, {
+                started: false,
+                stopped: true
+            });
+            alert("Voting has stopped!");
+        };
+
+        // Delete nominee
+        window.deleteNominee = async function (nomineeId) {
+            await deleteDoc(doc(db, "nominees", nomineeId));
+            alert("Nominee deleted!");
+        };
+
+        loadNominees();
+        loadVoterStatus();
+        // Display real-time voting status
+        function loadVotingStatus() {
+            const votingRef = doc(db, "settings", "status");
+            onSnapshot(votingRef, (doc) => {
+                if (doc.exists()) {
+                    const data = doc.data();
+                    document.getElementById("votingStatus").innerHTML =
+                        `<strong>Status:</strong> ${data.started ? "Voting is OPEN 🟢" : "Voting is CLOSED 🔴"}`;
+                } else {
+                    document.getElementById("votingStatus").innerHTML =
+                        `<strong>Status:</strong> Not Set ❓`;
+                }
+            });
+        }
+
+        // Call function on page load
+        loadVotingStatus();
+
+    </script>
+
+</body>
+
+</html>

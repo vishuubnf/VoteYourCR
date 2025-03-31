@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vote Your CR</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-app.js";
+        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDi0XJ2lEWE4t_ttn1d6c1AmPk_jsIIcTE",
+            authDomain: "voteyourcr.firebaseapp.com",
+            projectId: "voteyourcr",
+            storageBucket: "voteyourcr.firebasestorage.app",
+            messagingSenderId: "486184198747",
+            appId: "1:486184198747:web:b45d0d258cee5d24d6557e",
+            measurementId: "G-ZL6HXYVQJP"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        function loadNominees() {
+            const nomineeList = document.getElementById("nomineeList");
+            const progressContainer = document.getElementById("progressContainer");
+            const winnerDisplay = document.getElementById("winner");
+
+            onSnapshot(collection(db, "nominees"), (snapshot) => {
+                nomineeList.innerHTML = "";
+                progressContainer.innerHTML = "";
+                let maxVotes = 0;
+                let currentWinner = "";
+                const nominees = [];
+                let tie = false; // Flag to detect a tie
+
+                snapshot.forEach((doc) => {
+                    const nominee = doc.data();
+                    nominees.push(nominee);
+                    if (nominee.votes > maxVotes) {
+                        maxVotes = nominee.votes;
+                        currentWinner = nominee.name;
+                        tie = false; // Reset tie flag if new max votes are found
+                    } else if (nominee.votes === maxVotes) {
+                        tie = true; // Set tie flag if another nominee has the same max votes
+                    }
+                });
+
+                // Display the winner or ongoing battle based on the tie flag
+                if (tie) {
+                    winnerDisplay.innerHTML = `Battle is ongoing. No clear winner yet.`;
+                } else {
+                    winnerDisplay.innerHTML = `Current Winner: <strong>${currentWinner}</strong>`;
+                }
+
+                nominees.forEach((nominee) => {
+                    const votePercentage = maxVotes ? (nominee.votes / maxVotes) * 100 : 0;
+                    const nomineeDiv = document.createElement("div");
+                    nomineeDiv.classList.add("nominee-card");
+                    nomineeDiv.innerHTML = `
+                        <h3>${nominee.name}</h3>
+                        <p class="slogan">"${nominee.slogan}"</p>
+                        <p class="votes">Votes: <strong>${nominee.votes}</strong></p>
+                    `;
+                    nomineeList.appendChild(nomineeDiv);
+
+                    const progressBarDiv = document.createElement("div");
+                    progressBarDiv.classList.add("progress-bar-container");
+                    progressBarDiv.innerHTML = `
+                        <div class="progress-bar-content">
+                            <span class="nominee-name">${nominee.name}</span>
+                            <div class="progress-bar">
+                                <div class="progress" style="width: ${votePercentage}%;"></div>
+                            </div>
+                        </div>
+                    `;
+                    progressContainer.appendChild(progressBarDiv);
+                });
+            });
+        }
+
+        window.onload = loadNominees;
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            text-align: center;
+            background: #f4f4f4;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .nominee-container {
+            margin-top: 20px;
+        }
+
+        .nominee-title {
+            font-size: 40px;
+            color: #007bff;
+            margin-bottom: 15px;
+        }
+
+        .nominee-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .nominee-card {
+            background: rgb(255, 255, 255);
+            padding: 200px;
+            /* Adjusted padding for better fitting */
+            border-radius: 15px;
+            /* Reduced border radius for better look */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .progress-bar-container {
+            width: 80%;
+            margin: 10px auto;
+            text-align: left;
+        }
+
+        .progress-bar-content {
+            display: flex;
+            align-items: center;
+        }
+
+        .nominee-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-right: 15px;
+            width: 120px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background: #007bff;
+            transition: width 0.5s ease-in-out;
+        }
+
+        #winner {
+            font-size: 22px;
+            font-weight: bold;
+            margin-top: 20px;
+            color: #28a745;
+        }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 24px;
+            }
+
+            .nominee-title {
+                font-size: 32px;
+            }
+
+            .button-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .nominee-card {
+                padding: 15px;
+                /* Adjust for smaller screens */
+            }
+
+            .progress-bar-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .nominee-name {
+                margin-bottom: 10px;
+                width: auto;
+                /* Allow name to wrap */
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 20px;
+            }
+
+            .nominee-title {
+                font-size: 24px;
+            }
+
+            button {
+                font-size: 16px;
+                padding: 10px 15px;
+            }
+
+            .nominee-card {
+                padding: 10px;
+                /* Reduce padding on very small screens */
+            }
+
+            .progress-bar-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Vote Your CR</h1>
+    <div class="button-container">
+        <button onclick="location.href='voter.html'">Voter</button>
+        <button onclick="location.href='nominee.html'">Nominee</button>
+        <button onclick="location.href='admin.html'">Admin</button>
+    </div>
+    <div class="nominee-container">
+        <h2 class="nominee-title">Nominee List</h2>
+        <div id="nomineeList" class="nominee-list"></div>
+    </div>
+    <div id="progressContainer"></div>
+    <div id="winner">Current Winner: <strong>None</strong></div>
+</body>
+
+</html>

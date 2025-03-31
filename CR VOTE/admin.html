@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #218838;
+        }
+
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Admin Registration</h2>
+        <input type="email" id="registerEmail" placeholder="Email">
+        <input type="password" id="registerPassword" placeholder="Password">
+        <button onclick="register()">Register</button>
+        <p class="error" id="registerError"></p>
+    </div>
+
+    <div class="container">
+        <h2>Admin Login</h2>
+        <input type="email" id="loginEmail" placeholder="Email">
+        <input type="password" id="loginPassword" placeholder="Password">
+        <button onclick="login()">Login</button>
+        <p class="error" id="loginError"></p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDi0XJ2lEWE4t_ttn1d6c1AmPk_jsIIcTE",
+            authDomain: "voteyourcr.firebaseapp.com",
+            projectId: "voteyourcr",
+            storageBucket: "voteyourcr.firebasestorage.app",
+            messagingSenderId: "486184198747",
+            appId: "1:486184198747:web:b45d0d258cee5d24d6557e",
+            measurementId: "G-ZL6HXYVQJP"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        async function checkAdminExists() {
+            const adminRef = doc(db, "admin", "uniqueAdmin");
+            const adminSnap = await getDoc(adminRef);
+            return adminSnap.exists(); // If admin exists, return true
+        }
+
+        window.register = async function () {
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const errorElement = document.getElementById('registerError');
+            errorElement.textContent = '';
+
+            if (await checkAdminExists()) {
+                errorElement.textContent = "Admin already exists!";
+                return;
+            }
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                await setDoc(doc(db, "admin", "uniqueAdmin"), { email: user.email, uid: user.uid });
+                alert("Admin registered successfully!");
+            } catch (error) {
+                errorElement.textContent = error.message;
+            }
+        };
+
+        window.login = async function () {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorElement = document.getElementById('loginError');
+            errorElement.textContent = '';
+
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                const adminRef = doc(db, "admin", "uniqueAdmin");
+                const adminSnap = await getDoc(adminRef);
+
+                if (adminSnap.exists() && adminSnap.data().uid === user.uid) {
+                    alert("Login successful! Redirecting to Admin Dashboard...");
+                    window.location.href = "dashboard.html";
+                } else {
+                    errorElement.textContent = "Access denied! You are not the admin.";
+                }
+            } catch (error) {
+                errorElement.textContent = error.message;
+            }
+        };
+    </script>
+
+</body>
+
+</html>
